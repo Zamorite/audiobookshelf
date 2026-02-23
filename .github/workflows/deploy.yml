@@ -18,18 +18,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - id: repository_owner
-        uses: ASzc/change-string-case-action@v2
-        with:
-          string: ${{ github.repository_owner }}
-
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           platforms: linux/amd64
-          tags: ghcr.io/${{ steps.repository_owner.outputs.lower }}/audiobookshelf:latest
+          tags: ghcr.io/zamorite/audiobookshelf:latest
 
       - name: Trigger Dokploy Redeploy
         run: |
