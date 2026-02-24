@@ -1,5 +1,5 @@
 <template>
-  <div class="flex justify-center pt-4 pb-2 lg:pt-0 lg:pb-2">
+  <div class="flex justify-center pt-2 pb-0 lg:pt-0 lg:pb-2">
     <div class="flex items-center justify-center grow">
       <template v-if="!loading">
         <ui-tooltip direction="top" :text="$strings.ButtonPreviousChapter" class="mr-4 lg:mr-8">

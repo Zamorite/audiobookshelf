@@ -1,15 +1,15 @@
 <template>
-  <div class="w-full -mt-6">
-    <div class="w-full relative mb-1">
-      <div class="absolute -top-10 lg:top-0 right-0 lg:right-2 flex items-center h-full">
-        <controls-playback-speed-control v-model="playbackRate" @input="setPlaybackRate" @change="playbackRateChanged" :playbackRateIncrementDecrement="playbackRateIncrementDecrement" class="mx-2 block" />
+  <div class="w-full sm:-mt-6">
+    <div class="w-full relative mb-4">
+      <div class="relative top-0 lg:absolute lg:top-0 right-0 lg:right-2 flex items-center w-full lg:w-auto justify-between lg:justify-end h-10 lg:h-full px-2 lg:px-0">
+        <controls-playback-speed-control v-model="playbackRate" @input="setPlaybackRate" @change="playbackRateChanged" :playbackRateIncrementDecrement="playbackRateIncrementDecrement" class="lg:mx-2 block" />
 
         <ui-tooltip direction="bottom" :text="$strings.LabelVolume">
-          <controls-volume-control ref="volumeControl" v-model="volume" @input="setVolume" class="mx-2 hidden sm:block" />
+          <controls-volume-control ref="volumeControl" v-model="volume" @input="setVolume" class="lg:mx-2 hidden sm:block" />
         </ui-tooltip>
 
         <ui-tooltip v-if="!hideSleepTimer" direction="top" :text="$strings.LabelSleepTimer">
-          <button :aria-label="$strings.LabelSleepTimer" class="text-gray-300 hover:text-white mx-1 lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="$emit('showSleepTimer')">
+          <button :aria-label="$strings.LabelSleepTimer" class="text-gray-300 hover:text-white lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="$emit('showSleepTimer')">
             <span v-if="!sleepTimerSet" class="material-symbols text-2xl">snooze</span>
             <div v-else class="flex items-center">
               <span class="material-symbols text-lg text-warning">snooze</span>
@@ -19,31 +19,31 @@
         </ui-tooltip>
 
         <ui-tooltip v-if="!isPodcast && !hideBookmarks" direction="top" :text="$strings.LabelViewBookmarks">
-          <button :aria-label="$strings.LabelViewBookmarks" class="text-gray-300 hover:text-white mx-1 lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="$emit('showBookmarks')">
+          <button :aria-label="$strings.LabelViewBookmarks" class="text-gray-300 hover:text-white lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="$emit('showBookmarks')">
             <span class="material-symbols text-2xl">{{ bookmarks.length ? 'bookmarks' : 'bookmark_border' }}</span>
           </button>
         </ui-tooltip>
 
         <ui-tooltip v-if="hasTranscript" direction="top" text="Transcript">
-          <button aria-label="View Transcript" class="text-gray-300 hover:text-white mx-1 lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="$emit('toggleTranscript')">
+          <button aria-label="View Transcript" class="text-gray-300 hover:text-white lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="$emit('toggleTranscript')">
             <span class="material-symbols text-2xl">subtitles</span>
           </button>
         </ui-tooltip>
 
         <ui-tooltip v-if="chapters.length" direction="top" :text="$strings.LabelViewChapters">
-          <button :aria-label="$strings.LabelViewChapters" class="text-gray-300 hover:text-white mx-1 lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="showChapters">
+          <button :aria-label="$strings.LabelViewChapters" class="text-gray-300 hover:text-white lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="showChapters">
             <span class="material-symbols text-2xl">format_list_bulleted</span>
           </button>
         </ui-tooltip>
 
         <ui-tooltip v-if="playerQueueItems.length" direction="top" :text="$strings.LabelViewQueue">
-          <button :aria-label="$strings.LabelViewQueue" class="outline-hidden text-gray-300 mx-1 lg:mx-2 hover:text-white" @mousedown.prevent @mouseup.prevent @click.stop="$emit('showPlayerQueueItems')">
+          <button :aria-label="$strings.LabelViewQueue" class="outline-hidden text-gray-300 lg:mx-2 hover:text-white" @mousedown.prevent @mouseup.prevent @click.stop="$emit('showPlayerQueueItems')">
             <span class="material-symbols text-2.5xl sm:text-3xl">playlist_play</span>
           </button>
         </ui-tooltip>
 
         <ui-tooltip direction="top" :text="$strings.LabelViewPlayerSettings">
-          <button :aria-label="$strings.LabelViewPlayerSettings" class="outline-hidden text-gray-300 mx-1 lg:mx-2 hover:text-white" @mousedown.prevent @mouseup.prevent @click.stop="showPlayerSettings">
+          <button :aria-label="$strings.LabelViewPlayerSettings" class="outline-hidden text-gray-300 lg:mx-2 hover:text-white" @mousedown.prevent @mouseup.prevent @click.stop="showPlayerSettings">
             <span class="material-symbols text-2xl sm:text-2.5xl">settings_slow_motion</span>
           </button>
         </ui-tooltip>
