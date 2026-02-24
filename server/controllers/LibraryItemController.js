@@ -19,6 +19,15 @@ const CacheManager = require('../managers/CacheManager')
 const CoverManager = require('../managers/CoverManager')
 const ShareManager = require('../managers/ShareManager')
 
+const { parseSrt, srtTimeToSeconds } = require('../utils/srtParser')
+
+/**
+ * Module-level cache for parsed SRT subtitle arrays.
+ * Keyed by library file `ino`. Avoids re-parsing large files on every request.
+ * @type {Map<string, Array<{id: number, start: number, end: number, text: string}>>}
+ */
+const _transcriptCache = new Map()
+
 /**
  * @typedef RequestUserObject
  * @property {import('../models/User')} user
@@ -128,6 +137,62 @@ class LibraryItemController {
 
     await Database.resetLibraryIssuesFilterData(req.libraryItem.libraryId)
     res.sendStatus(200)
+  }
+
+  /**
+   * GET: /api/items/:id/transcript/:ino
+   * Returns a time-windowed slice of parsed subtitle objects from an .srt file.
+   *
+   * Query params:
+   *   ?from=<seconds>  start of the window (default: 0)
+   *   ?to=<seconds>    end of the window   (default: from + 600)
+   *
+   * Response: { from, to, total, subtitles: [{id, start, end, text}] }
+   *
+   * The full parsed subtitle array is cached in memory after the first request
+   * so subsequent window fetches are instant.
+   *
+   * @param {LibraryItemControllerRequest} req
+   * @param {Response} res
+   */
+  async getTranscript(req, res) {
+    const ino = req.params.ino
+    const libraryFile = req.libraryItem.libraryFiles.find((lf) => lf.ino === ino && lf.metadata.ext === '.srt')
+
+    if (!libraryFile) {
+      Logger.error(`[LibraryItemController] Transcript file not found with ino "${ino}" for item "${req.libraryItem.id}"`)
+      return res.sendStatus(404)
+    }
+
+    // Parse time-window query params
+    const from = Math.max(0, parseFloat(req.query.from) || 0)
+    const to = parseFloat(req.query.to) || from + 600
+
+    try {
+      // Return cached parse if available
+      let allSubtitles = _transcriptCache.get(ino)
+
+      if (!allSubtitles) {
+        const absPath = Path.join(req.libraryItem.path, libraryFile.metadata.relPath)
+        const srtText = await fs.readFile(absPath, 'utf-8')
+        allSubtitles = parseSrt(srtText)
+        _transcriptCache.set(ino, allSubtitles)
+        Logger.debug(`[LibraryItemController] Parsed and cached ${allSubtitles.length} subtitles for ino "${ino}"`)
+      }
+
+      // Slice by time window — binary search for the start index
+      const windowSubtitles = allSubtitles.filter((s) => s.end >= from && s.start <= to)
+
+      return res.json({
+        from,
+        to,
+        total: allSubtitles.length,
+        subtitles: windowSubtitles
+      })
+    } catch (err) {
+      Logger.error(`[LibraryItemController] Failed to parse transcript for ino "${ino}"`, err)
+      return res.status(500).send('Failed to parse transcript')
+    }
   }
 
   static handleDownloadError(error, res) {

@@ -24,6 +24,12 @@
           </button>
         </ui-tooltip>
 
+        <ui-tooltip v-if="hasTranscript" direction="top" text="Transcript">
+          <button aria-label="View Transcript" class="text-gray-300 hover:text-white mx-1 lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="$emit('toggleTranscript')">
+            <span class="material-symbols text-2xl">subtitles</span>
+          </button>
+        </ui-tooltip>
+
         <ui-tooltip v-if="chapters.length" direction="top" :text="$strings.LabelViewChapters">
           <button :aria-label="$strings.LabelViewChapters" class="text-gray-300 hover:text-white mx-1 lg:mx-2" @mousedown.prevent @mouseup.prevent @click.stop="showChapters">
             <span class="material-symbols text-2xl">format_list_bulleted</span>
@@ -89,7 +95,8 @@ export default {
     isPodcast: Boolean,
     hideBookmarks: Boolean,
     hideSleepTimer: Boolean,
-    hasNextItemInQueue: Boolean
+    hasNextItemInQueue: Boolean,
+    hasTranscript: Boolean
   },
   data() {
     return {

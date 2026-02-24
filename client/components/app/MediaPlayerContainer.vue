@@ -42,6 +42,7 @@
       :sleep-timer-type="sleepTimerType"
       :is-podcast="isPodcast"
       :hasNextItemInQueue="hasNextItemInQueue"
+      :has-transcript="hasTranscript"
       @playPause="playPause"
       @jumpForward="jumpForward"
       @jumpBackward="jumpBackward"
@@ -53,6 +54,7 @@
       @showBookmarks="showBookmarks"
       @showSleepTimer="showSleepTimerModal = true"
       @showPlayerQueueItems="showPlayerQueueItemsModal = true"
+      @toggleTranscript="showTranscriptModal = !showTranscriptModal"
     />
 
     <modals-bookmarks-modal v-model="showBookmarksModal" :bookmarks="bookmarks" :current-time="bookmarkCurrentTime" :playback-rate="currentPlaybackRate" :library-item-id="libraryItemId" @select="selectBookmark" />
@@ -60,13 +62,19 @@
     <modals-sleep-timer-modal v-model="showSleepTimerModal" :timer-set="sleepTimerSet" :timer-type="sleepTimerType" :remaining="sleepTimerRemaining" :has-chapters="!!chapters.length" @set="setSleepTimer" @cancel="cancelSleepTimer" @increment="incrementSleepTimer" @decrement="decrementSleepTimer" />
 
     <modals-player-queue-items-modal v-model="showPlayerQueueItemsModal" />
+
+    <player-transcript :show="showTranscriptModal" :library-item-id="libraryItemId" :library-files="streamLibraryItem ? streamLibraryItem.libraryFiles : []" :current-time="currentTime" @close="showTranscriptModal = false" @seek="seek" />
   </div>
 </template>
 
 <script>
 import PlayerHandler from '@/players/PlayerHandler'
+import PlayerTranscript from '../player/PlayerTranscript.vue'
 
 export default {
+  components: {
+    PlayerTranscript
+  },
   data() {
     return {
       playerHandler: new PlayerHandler(this),
@@ -86,7 +94,8 @@ export default {
       currentPlaybackRate: 1,
       syncFailedToast: null,
       coverAspectRatio: 1,
-      lastChapterId: null
+      lastChapterId: null,
+      showTranscriptModal: false
     }
   },
   computed: {
@@ -178,6 +187,10 @@ export default {
     },
     playerQueueItems() {
       return this.$store.state.playerQueueItems || []
+    },
+    hasTranscript() {
+      if (!this.streamLibraryItem || !this.streamLibraryItem.libraryFiles) return false
+      return this.streamLibraryItem.libraryFiles.some((f) => f.metadata?.ext === '.srt')
     }
   },
   methods: {
