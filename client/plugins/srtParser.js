@@ -1,9 +1,9 @@
 /**
  * SRT Client-Side Utilities
  *
- * Note: SRT *parsing* has moved server-side (LibraryItemController.parseSrt).
- * This file retains only the binary-search helper used to find the active
- * subtitle within the client's current time-window array.
+ * Note: SRT parsing (parseSrt, srtTimeToSeconds) lives server-side in
+ * server/utils/srtParser.js. This module only exports what the client
+ * actually uses at runtime.
  */
 
 /**

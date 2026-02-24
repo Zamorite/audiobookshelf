@@ -69,7 +69,7 @@
 
 <script>
 import PlayerHandler from '@/players/PlayerHandler'
-import PlayerTranscript from './PlayerTranscript.vue'
+import PlayerTranscript from '../player/PlayerTranscript.vue'
 
 export default {
   components: {

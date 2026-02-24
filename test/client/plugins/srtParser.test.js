@@ -1,14 +1,7 @@
 const assert = require('assert')
-let parseSrt, srtTimeToSeconds, findActiveSubtitleIndex
+const { parseSrt, srtTimeToSeconds, findActiveSubtitleIndex } = require('../../../server/utils/srtParser')
 
 describe('SRT Parser Utility', () => {
-  before(async () => {
-    const srtParser = await import('../../../client/plugins/srtParser.js')
-    parseSrt = srtParser.parseSrt
-    srtTimeToSeconds = srtParser.srtTimeToSeconds
-    findActiveSubtitleIndex = srtParser.findActiveSubtitleIndex
-  })
-
   describe('srtTimeToSeconds', () => {
     it('should correctly convert HH:MM:SS,ms to seconds', () => {
       assert.strictEqual(srtTimeToSeconds('00:00:01,000'), 1)
@@ -21,8 +14,8 @@ describe('SRT Parser Utility', () => {
       assert.strictEqual(srtTimeToSeconds('00:00:01.500'), 1.5)
     })
 
-    it('should return 0 for invalid formats', () => {
-      assert.strictEqual(srtTimeToSeconds('invalid format'), 0)
+    it('should return NaN for invalid formats', () => {
+      assert.ok(isNaN(srtTimeToSeconds('invalid format')))
     })
   })
 

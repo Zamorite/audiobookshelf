@@ -19,6 +19,8 @@ const CacheManager = require('../managers/CacheManager')
 const CoverManager = require('../managers/CoverManager')
 const ShareManager = require('../managers/ShareManager')
 
+const { parseSrt, srtTimeToSeconds } = require('../utils/srtParser')
+
 /**
  * Module-level cache for parsed SRT subtitle arrays.
  * Keyed by library file `ino`. Avoids re-parsing large files on every request.
@@ -173,7 +175,7 @@ class LibraryItemController {
       if (!allSubtitles) {
         const absPath = Path.join(req.libraryItem.path, libraryFile.metadata.relPath)
         const srtText = await fs.readFile(absPath, 'utf-8')
-        allSubtitles = LibraryItemController.parseSrt(srtText)
+        allSubtitles = parseSrt(srtText)
         _transcriptCache.set(ino, allSubtitles)
         Logger.debug(`[LibraryItemController] Parsed and cached ${allSubtitles.length} subtitles for ino "${ino}"`)
       }
@@ -191,46 +193,6 @@ class LibraryItemController {
       Logger.error(`[LibraryItemController] Failed to parse transcript for ino "${ino}"`, err)
       return res.status(500).send('Failed to parse transcript')
     }
-  }
-
-  /**
-   * Parses a raw SRT string into an array of subtitle objects.
-   * Intentionally kept simple and allocation-efficient.
-   *
-   * @param {string} srtText
-   * @returns {Array<{id: number, start: number, end: number, text: string}>}
-   */
-  static parseSrt(srtText) {
-    if (!srtText) return []
-    const normalized = srtText.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-    const blocks = normalized.split(/\n{2,}/)
-    const subtitles = []
-    for (const block of blocks) {
-      const trimmed = block.trim()
-      if (!trimmed) continue
-      const lines = trimmed.split('\n')
-      if (lines.length < 3) continue
-      const id = parseInt(lines[0].trim(), 10)
-      const tsParts = lines[1].split(' --> ')
-      if (tsParts.length !== 2) continue
-      const start = LibraryItemController.srtTimeToSeconds(tsParts[0].trim())
-      const end = LibraryItemController.srtTimeToSeconds(tsParts[1].trim())
-      if (isNaN(start) || isNaN(end)) continue
-      const text = lines.slice(2).join('\n').trim()
-      subtitles.push({ id, start, end, text })
-    }
-    return subtitles
-  }
-
-  /**
-   * Converts an SRT timestamp string (HH:MM:SS,ms or HH:MM:SS.ms) to seconds.
-   * @param {string} ts
-   * @returns {number}
-   */
-  static srtTimeToSeconds(ts) {
-    const parts = ts.replace(',', '.').split(':')
-    if (parts.length !== 3) return NaN
-    return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2])
   }
 
   static handleDownloadError(error, res) {
