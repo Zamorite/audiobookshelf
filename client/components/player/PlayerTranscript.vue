@@ -1,11 +1,8 @@
 <template>
-  <div v-if="show" class="transcript-container absolute inset-0 z-40 bg-primary/95 overflow-hidden w-full h-full flex flex-col p-4 shadow-inner">
+  <div v-if="show" class="transcript-container absolute bottom-full left-0 md:left-20 right-0 z-40 bg-primary/95 overflow-hidden flex flex-col p-4 shadow-inner pointer-events-auto border-y border-gray-800">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-4 sticky top-0 bg-primary z-10 pb-2 border-b border-gray-700">
-      <h3 class="text-lg font-semibold text-gray-200">{{ $strings.LabelTranscript || 'Transcript' }}</h3>
-      <button @click="$emit('close')" class="text-gray-400 hover:text-white transition-colors" aria-label="Close Transcript">
-        <span class="material-symbols text-2xl">close</span>
-      </button>
+    <div class="flex justify-between items-center mb-2 sticky top-0 bg-primary z-10 pb-2 border-b border-gray-700">
+      <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider">{{ $strings.LabelTranscript || 'Transcript' }}</h3>
     </div>
 
     <!-- Loading (initial fetch) -->
@@ -25,10 +22,10 @@
     </div>
 
     <!-- Virtual scroller -->
-    <recycle-scroller v-else ref="scroller" class="flex-grow" :items="window" :item-size="ITEM_HEIGHT" key-field="id">
+    <recycle-scroller v-else ref="scroller" class="flex-grow" :items="window" :item-size="itemHeight" key-field="id">
       <template #default="{ item, index }">
-        <div class="transcript-item flex items-start gap-2 cursor-pointer px-1 py-2 rounded transition-colors duration-200" :class="activeIndex === index ? 'text-white font-medium' : 'text-gray-400 hover:text-gray-300'" @click="seekToSubtitle(item.start)">
-          <span class="text-xs text-gray-600 pt-1 shrink-0 w-14 text-right select-none">{{ formatTime(item.start) }}</span>
+        <div class="transcript-item flex flex-col justify-center items-start sm:flex-row sm:items-center sm:justify-start gap-1 sm:gap-2 cursor-pointer px-1 py-1 sm:py-2 rounded transition-colors duration-200" :class="activeIndex === index ? 'text-white font-medium bg-white/5' : 'text-gray-400 hover:text-gray-300'" @click="seekToSubtitle(item.start)">
+          <span class="text-xs text-gray-500 sm:text-gray-600 sm:pt-0 shrink-0 w-14 sm:text-right select-none">{{ formatTime(item.start) }}</span>
           <p class="text-base sm:text-lg leading-snug">{{ item.text }}</p>
         </div>
       </template>
@@ -51,7 +48,11 @@ const WINDOW_DURATION = 600 // 10 minutes
 const PREFETCH_THRESHOLD = 60
 
 /** Fixed height of each subtitle row in px — must match CSS. */
-const ITEM_HEIGHT = 56
+const ITEM_HEIGHT_DESKTOP = 72
+const ITEM_HEIGHT_MOBILE = 150
+
+/** How many ms to look ahead for scrolling to compensate for latency. */
+const SCROLL_ANTICIPATION_MS = 1000
 
 export default {
   props: {
@@ -87,13 +88,15 @@ export default {
       loading: false,
       error: null,
       autoScroll: true,
-      isFetchingWindow: false,
-      ITEM_HEIGHT
+      isFetchingWindow: false
     }
   },
   computed: {
     transcriptFile() {
       return this.libraryFiles.find((f) => f.metadata?.ext === '.srt')
+    },
+    itemHeight() {
+      return this.$store.state.globals.isMobile ? ITEM_HEIGHT_MOBILE : ITEM_HEIGHT_DESKTOP
     }
   },
   watch: {
@@ -108,11 +111,11 @@ export default {
     currentTime(newTime) {
       if (!this.show || !this.window.length) return
 
-      const newIndex = findActiveSubtitleIndex(this.window, newTime)
-      if (newIndex !== -1 && newIndex !== this.activeIndex) {
-        this.activeIndex = newIndex
+      const scrollIndex = findActiveSubtitleIndex(this.window, newTime + SCROLL_ANTICIPATION_MS / 1000)
+      if (scrollIndex !== -1 && scrollIndex !== this.activeIndex) {
+        this.activeIndex = scrollIndex
         if (this.autoScroll) {
-          this.$nextTick(() => this.$refs.scroller?.scrollToItem(this.activeIndex))
+          this.$nextTick(() => this.scrollToActive(this.activeIndex))
         }
       }
 
@@ -163,7 +166,7 @@ export default {
           this.windowTo = to
           this.activeIndex = findActiveSubtitleIndex(this.window, this.currentTime)
           if (this.autoScroll && this.activeIndex !== -1) {
-            this.$nextTick(() => this.$refs.scroller?.scrollToItem(this.activeIndex))
+            this.$nextTick(() => this.scrollToActive(this.activeIndex))
           }
         } else {
           // Append: prefetching the next adjacent window
@@ -181,6 +184,17 @@ export default {
       } finally {
         this.isFetchingWindow = false
       }
+    },
+    /**
+     * Scrolls the virtual scroller to the given index, centering the item vertically.
+     * @param {number} index
+     */
+    scrollToActive(index) {
+      if (!this.$refs.scroller || index === -1) return
+      const containerHeight = this.$refs.scroller.$el.clientHeight
+      if (!containerHeight) return // Not yet rendered or hidden
+      const targetPos = index * this.itemHeight - containerHeight / 2 + this.itemHeight / 2
+      this.$refs.scroller.scrollToPosition(targetPos)
     },
 
     seekToSubtitle(startTime) {
@@ -220,11 +234,26 @@ export default {
 
 <style scoped>
 .transcript-container {
-  max-height: calc(100vh - 8rem);
+  height: calc(100vh - 16rem);
+}
+@media (min-width: 1024px) {
+  .transcript-container {
+    height: calc(100vh - 14rem);
+  }
 }
 
 .transcript-item {
-  height: 56px; /* must match ITEM_HEIGHT constant */
+  height: 150px; /* ITEM_HEIGHT_MOBILE */
   overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .transcript-item {
+    height: 72px; /* ITEM_HEIGHT_DESKTOP */
+  }
+}
+
+:deep(.vue-recycle-scroller) {
+  scroll-behavior: smooth;
 }
 </style>
