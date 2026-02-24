@@ -1,5 +1,5 @@
 <template>
-  <div ref="wrapper" class="relative ml-4 sm:ml-8" v-click-outside="clickOutside">
+  <div ref="wrapper" class="relative sm:ml-8" v-click-outside="clickOutside">
     <div class="flex items-center justify-center text-gray-300 cursor-pointer h-full" @mousedown.prevent @mouseup.prevent @click="setShowMenu(true)">
       <span class="text-gray-200 text-sm sm:text-base">{{ playbackRateDisplay }}<span class="text-base">x</span></span>
     </div>
