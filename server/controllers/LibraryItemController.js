@@ -20,6 +20,7 @@ const CoverManager = require('../managers/CoverManager')
 const ShareManager = require('../managers/ShareManager')
 
 const { parseSrt, srtTimeToSeconds } = require('../utils/srtParser')
+const { parseAss } = require('../utils/assParser')
 
 /**
  * Module-level cache for parsed SRT subtitle arrays.
@@ -157,7 +158,7 @@ class LibraryItemController {
    */
   async getTranscript(req, res) {
     const ino = req.params.ino
-    const libraryFile = req.libraryItem.libraryFiles.find((lf) => lf.ino === ino && lf.metadata.ext === '.srt')
+    const libraryFile = req.libraryItem.libraryFiles.find((lf) => lf.ino === ino && (lf.metadata.ext === '.srt' || lf.metadata.ext === '.ass'))
 
     if (!libraryFile) {
       Logger.error(`[LibraryItemController] Transcript file not found with ino "${ino}" for item "${req.libraryItem.id}"`)
@@ -173,9 +174,14 @@ class LibraryItemController {
       let allSubtitles = _transcriptCache.get(ino)
 
       if (!allSubtitles) {
+        const ext = libraryFile.metadata.ext
         const absPath = Path.join(req.libraryItem.path, libraryFile.metadata.relPath)
-        const srtText = await fs.readFile(absPath, 'utf-8')
-        allSubtitles = parseSrt(srtText)
+        const transcriptText = await fs.readFile(absPath, 'utf-8')
+        if (ext === '.ass') {
+          allSubtitles = parseAss(transcriptText)
+        } else {
+          allSubtitles = parseSrt(transcriptText)
+        }
         _transcriptCache.set(ino, allSubtitles)
         Logger.debug(`[LibraryItemController] Parsed and cached ${allSubtitles.length} subtitles for ino "${ino}"`)
       }

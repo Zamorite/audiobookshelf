@@ -26,7 +26,15 @@
       <template #default="{ item, index }">
         <div class="transcript-item flex flex-col justify-center items-start sm:flex-row sm:items-center sm:justify-start gap-1 sm:gap-2 cursor-pointer px-1 py-1 sm:py-2 rounded transition-colors duration-200" :class="activeIndex === index ? 'text-white font-medium bg-white/5' : 'text-gray-400 hover:text-gray-300'" @click="seekToSubtitle(item.start)">
           <span class="text-xs text-gray-500 sm:text-gray-600 sm:pt-0 shrink-0 w-14 sm:text-right select-none">{{ formatTime(item.start) }}</span>
-          <p class="text-base sm:text-lg leading-snug">{{ item.text }}</p>
+          <p v-if="item.words && item.words.length" class="text-base sm:text-lg leading-snug">
+            <template v-if="activeIndex === index">
+              <span v-for="(word, wordIndex) in item.words" :key="wordIndex" ref="activeWords" :data-start="word.start" :data-end="word.end" class="text-gray-500 transition-colors duration-75">{{ word.text }}</span>
+            </template>
+            <template v-else>
+              {{ item.text }}
+            </template>
+          </p>
+          <p v-else class="text-base sm:text-lg leading-snug">{{ item.text }}</p>
         </div>
       </template>
     </recycle-scroller>
@@ -71,6 +79,14 @@ export default {
     currentTime: {
       type: Number,
       default: 0
+    },
+    isPlaying: {
+      type: Boolean,
+      default: false
+    },
+    playbackRate: {
+      type: Number,
+      default: 1
     }
   },
   data() {
@@ -88,12 +104,15 @@ export default {
       loading: false,
       error: null,
       autoScroll: true,
-      isFetchingWindow: false
+      isFetchingWindow: false,
+      localCurrentTime: 0,
+      lastRafTime: 0,
+      rafId: null
     }
   },
   computed: {
     transcriptFile() {
-      return this.libraryFiles.find((f) => f.metadata?.ext === '.srt')
+      return this.libraryFiles.find((f) => f.metadata?.ext === '.ass') || this.libraryFiles.find((f) => f.metadata?.ext === '.srt')
     },
     itemHeight() {
       return this.$store.state.globals.isMobile ? ITEM_HEIGHT_MOBILE : ITEM_HEIGHT_DESKTOP
@@ -109,6 +128,10 @@ export default {
       }
     },
     currentTime(newTime) {
+      if (!this.isPlaying || Math.abs(this.localCurrentTime - newTime) > 0.3) {
+        this.localCurrentTime = newTime
+      }
+
       if (!this.show || !this.window.length) return
 
       const scrollIndex = findActiveSubtitleIndex(this.window, newTime + SCROLL_ANTICIPATION_MS / 1000)
@@ -123,6 +146,15 @@ export default {
       if (newTime >= this.windowTo - PREFETCH_THRESHOLD && !this.isFetchingWindow) {
         this.fetchWindow(this.windowTo - 30) // 30s overlap for seamless transition
       }
+    }
+  },
+  mounted() {
+    this.lastRafTime = performance.now()
+    this.rafId = requestAnimationFrame(this.onRaf)
+  },
+  beforeDestroy() {
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId)
     }
   },
   methods: {
@@ -227,6 +259,45 @@ export default {
       const m = Math.floor((seconds % 3600) / 60)
       const s = Math.floor(seconds % 60)
       return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`
+    },
+    onRaf() {
+      if (!this.show) {
+        this.rafId = requestAnimationFrame(this.onRaf)
+        return
+      }
+
+      const now = performance.now()
+      const dt = (now - this.lastRafTime) / 1000
+      this.lastRafTime = now
+
+      if (this.isPlaying) {
+        this.localCurrentTime += dt * this.playbackRate
+      }
+
+      // Fast DOM update for words, bypassing Vue reactivity for performance
+      if (this.$refs.activeWords && this.$refs.activeWords.length) {
+        const t = this.localCurrentTime
+        for (let i = 0; i < this.$refs.activeWords.length; i++) {
+          const span = this.$refs.activeWords[i]
+          const start = parseFloat(span.dataset.start)
+          const end = parseFloat(span.dataset.end)
+
+          let newClass = 'transition-colors duration-75 '
+          if (t >= start && t <= end) {
+            newClass += 'text-white font-bold'
+          } else if (t > end) {
+            newClass += 'text-gray-300'
+          } else {
+            newClass += 'text-gray-500'
+          }
+
+          if (span.className !== newClass) {
+            span.className = newClass
+          }
+        }
+      }
+
+      this.rafId = requestAnimationFrame(this.onRaf)
     }
   }
 }

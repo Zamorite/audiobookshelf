@@ -63,7 +63,7 @@
 
     <modals-player-queue-items-modal v-model="showPlayerQueueItemsModal" />
 
-    <player-transcript :show="showTranscriptModal" :library-item-id="libraryItemId" :library-files="streamLibraryItem ? streamLibraryItem.libraryFiles : []" :current-time="currentTime" @close="showTranscriptModal = false" @seek="seek" />
+    <player-transcript :show="showTranscriptModal" :library-item-id="libraryItemId" :library-files="streamLibraryItem ? streamLibraryItem.libraryFiles : []" :current-time="currentTime" :is-playing="isPlaying" :playback-rate="currentPlaybackRate" @close="showTranscriptModal = false" @seek="seek" />
   </div>
 </template>
 
@@ -190,7 +190,7 @@ export default {
     },
     hasTranscript() {
       if (!this.streamLibraryItem || !this.streamLibraryItem.libraryFiles) return false
-      return this.streamLibraryItem.libraryFiles.some((f) => f.metadata?.ext === '.srt')
+      return this.streamLibraryItem.libraryFiles.some((f) => f.metadata?.ext === '.srt' || f.metadata?.ext === '.ass')
     }
   },
   methods: {
